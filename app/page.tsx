@@ -23,10 +23,17 @@ const STEP_LENGTH = 0.5;
 const PICKUP_RANGE = 1;
 
 export default function RadarVirtualWorldFix() {
-  const [playerPosition, setPlayerPosition] = useState({ x: ROOM_SIZE_FT / 2, y: ROOM_SIZE_FT / 2  });
+  const [playerPosition, setPlayerPosition] = useState({
+    x: ROOM_SIZE_FT / 2,
+    y: ROOM_SIZE_FT / 2,
+  });
   const [boxes, setBoxes] = useState<Box[]>([]);
   const [inventory, setInventory] = useState<number[]>([]);
-  const [nearestInfo, setNearestInfo] = useState({ distance: 0, angle: 0, id: -1  });
+  const [nearestInfo, setNearestInfo] = useState({
+    distance: 0,
+    angle: 0,
+    id: -1,
+  });
   const [message, setMessage] = useState("");
   const [isStarted, setIsStarted] = useState(false);
   const [showBag, setShowBag] = useState(false);
@@ -39,7 +46,12 @@ export default function RadarVirtualWorldFix() {
   const [showQuitConfirm, setShowQuitConfirm] = useState(false);
   const [forceFinalScreen, setForceFinalScreen] = useState(false); // Quit လုပ်ရင် Victory screen ပြဖို့
   const [isSaved, setIsSaved] = useState(false);
-  const [user, setUser] = useState<{ id: number; username: string } | null>(null);
+  const [user, setUser] = useState<{ id: number; username: string } | null>(
+    null,
+  );
+   const lastMag = useRef(0); // test
+      const threshold = useRef(0.5);  // test
+
   const gameRef = useRef<HTMLDivElement>(null);
   const pos = useRef({ x: ROOM_SIZE_FT / 2, y: ROOM_SIZE_FT / 2 });
   const stepCooldown = useRef(0);
@@ -145,11 +157,22 @@ export default function RadarVirtualWorldFix() {
       const acc = e.acceleration;
       if (!acc || acc.x === null) return;
 
+      // const m = Math.sqrt(acc.x ** 2 + acc.y! ** 2 + acc.z! ** 2);
+      // setMag(m);
+
+      // const now = Date.now();
+      // if (m > 0.4 && m < 0.6 && now > stepCooldown.current) {
+     // Default value
+
+      // ... inside devicemotion ...
       const m = Math.sqrt(acc.x ** 2 + acc.y! ** 2 + acc.z! ** 2);
-      setMag(m);
+      // Low-pass filter (လှုပ်ခါနေတဲ့ noise တွေကို ဖယ်ထုတ်ဖို့)
+      const filteredMag = 0.8 * lastMag.current + 0.2 * m;
+      lastMag.current = filteredMag;
 
       const now = Date.now();
-      if (m > 0.4 && m < 0.6 && now > stepCooldown.current) {
+      // ခြေလှမ်းဖြစ်နိုင်ခြေရှိတဲ့ range ကို ပိုကျယ်ပေးလိုက်ပါ (ဥပမာ 0.5 ထက်ကျော်ရင်)
+      if (filteredMag > 0.8 && now > stepCooldown.current) {
         stepCooldown.current = now + 600;
 
         const alpha = deviceOrientation.current;
@@ -211,7 +234,7 @@ export default function RadarVirtualWorldFix() {
     script.async = true;
     document.body.appendChild(script);
   }, []);
-  
+
   const triggerFireworks = () => {
     const duration = 5 * 1000;
     const animationEnd = Date.now() + duration;
@@ -310,7 +333,9 @@ export default function RadarVirtualWorldFix() {
                   {message}
                 </p>
               )}
-              <p className="text-xs text-white"><small>Mag - {mag.toFixed(2)}</small></p>
+              <p className="text-xs text-white">
+                <small>Mag - {mag.toFixed(2)}</small>
+              </p>
             </div>
           </div>
         </>
@@ -417,7 +442,6 @@ export default function RadarVirtualWorldFix() {
         </div>
       )}
 
-   
       {(inventory.length === BOX_COUNT || forceFinalScreen) && (
         <div className="absolute inset-0 z-400 bg-black flex flex-col items-center justify-center p-8 text-center">
           <div
