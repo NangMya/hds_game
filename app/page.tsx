@@ -49,8 +49,8 @@ export default function RadarVirtualWorldFix() {
   const [user, setUser] = useState<{ id: number; username: string } | null>(
     null,
   );
-   const lastMag = useRef(0); // test
-      const threshold = useRef(0.5);  // test
+  const lastMag = useRef(0);
+  const peakThreshold = useRef(0.8);
 
   const gameRef = useRef<HTMLDivElement>(null);
   const pos = useRef({ x: ROOM_SIZE_FT / 2, y: ROOM_SIZE_FT / 2 });
@@ -162,19 +162,22 @@ export default function RadarVirtualWorldFix() {
 
       // const now = Date.now();
       // if (m > 0.4 && m < 0.6 && now > stepCooldown.current) {
-     // Default value
+      // Default value
 
       // ... inside devicemotion ...
       const m = Math.sqrt(acc.x ** 2 + acc.y! ** 2 + acc.z! ** 2);
-      setMag(m);
 
-      // Low-pass filter (လှုပ်ခါနေတဲ့ noise တွေကို ဖယ်ထုတ်ဖို့)
-      const filteredMag = 0.8 * lastMag.current + 0.2 * m;
-      lastMag.current = filteredMag;
+      // Low-pass filter: ဆောင့်ခနဲဖြစ်တဲ့ noise တွေကို ဖယ်ပြီး လှုပ်ရှားမှုကို ချောမွေ့အောင်လုပ်တာ
+      const smoothedMag = 0.7 * lastMag.current + 0.3 * m;
+      lastMag.current = smoothedMag;
+      setMag(smoothedMag);
 
       const now = Date.now();
-      // ခြေလှမ်းဖြစ်နိုင်ခြေရှိတဲ့ range ကို ပိုကျယ်ပေးလိုက်ပါ (ဥပမာ 0.5 ထက်ကျော်ရင်)
-      if (filteredMag > 0.8 && now > stepCooldown.current) {
+
+      // အပေါ်ကန့်သတ်ချက် (m < 0.6) ကို ဖြုတ်လိုက်ပါ
+      // smoothedMag က threshold ထက် ကျော်ရမယ်၊
+      // ပြီးတော့ လက်ရှိ m က အကျဘက်ကို ပြန်ရောက်နေရမယ် (Peak ဖြစ်ပြီးမှ step မှတ်တာ)
+      if (smoothedMag > peakThreshold.current && now > stepCooldown.current) {
         stepCooldown.current = now + 600;
 
         const alpha = deviceOrientation.current;
