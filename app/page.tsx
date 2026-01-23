@@ -211,48 +211,107 @@ export default function RadarVirtualWorldFix() {
     }, 1000);
   };
 
+  // bk
+  // const initGame = () => {
+  //   window.addEventListener("devicemotion", (e) => {
+  //     const acc = e.acceleration;
+  //     if (!acc || acc.x === null) return;
+  //     // const m = Math.sqrt(acc.x ** 2 + acc.y! ** 2 + acc.z! ** 2);
+  //     // setMag(m);
+
+  //     // const now = Date.now();
+  //     // if (m > 0.4 && m < 0.6 && now > stepCooldown.current) {
+  //     // Default value
+
+  //     // ... inside devicemotion ...
+  //     const m = Math.sqrt(acc.x ** 2 + acc.y! ** 2 + acc.z! ** 2);
+  //     setMag(m);
+
+  //     const now = Date.now();
+  //     if (m > sensitivityRef.current && now > stepCooldown.current) {
+  //       stepCooldown.current = now + 650;
+
+  //       const alpha = deviceOrientation.current;
+  //       pos.current.x += Math.sin(alpha) * STEP_LENGTH;
+  //       pos.current.y -= Math.cos(alpha) * STEP_LENGTH;
+
+  //       setIsOutOfBounds(
+  //         pos.current.x < 0 ||
+  //           pos.current.x > ROOM_SIZE_FT ||
+  //           pos.current.y < 0 ||
+  //           pos.current.y > ROOM_SIZE_FT,
+  //       );
+
+  //       pos.current.x = Math.max(
+  //         -0.5,
+  //         Math.min(ROOM_SIZE_FT + 0.5, pos.current.x),
+  //       );
+  //       pos.current.y = Math.max(
+  //         -0.5,
+  //         Math.min(ROOM_SIZE_FT + 0.5, pos.current.y),
+  //       );
+  //       updateNearest(pos.current, boxesRef.current);
+  //       setPlayerPosition({ ...pos.current });
+  //     }
+  //   });
+
+  //   window.addEventListener("deviceorientation", (e) => {
+  //     let alpha = 0;
+  //     if ((e as any).webkitCompassHeading) {
+  //       // for ios
+  //       alpha = (e as any).webkitCompassHeading;
+  //     } else {
+  //       // for android
+  //       alpha = 360 - (e.alpha || 0);
+  //     }
+  //     deviceOrientation.current = (alpha * Math.PI) / 180;
+  //   });
+  //   setIsStarted(true);
+  // };
+
   const initGame = () => {
     window.addEventListener("devicemotion", (e) => {
       const acc = e.acceleration;
       if (!acc || acc.x === null) return;
+      const x = acc.x;
+      const y = acc.y || 0;
+      const z = acc.z || 0;
 
-      // const m = Math.sqrt(acc.x ** 2 + acc.y! ** 2 + acc.z! ** 2);
-      // setMag(m);
-
-      // const now = Date.now();
-      // if (m > 0.4 && m < 0.6 && now > stepCooldown.current) {
-      // Default value
-
-      // ... inside devicemotion ...
-      const m = Math.sqrt(acc.x ** 2 + acc.y! ** 2 + acc.z! ** 2);
+      // Total Magnitude ကို တွက်တယ်
+      const m = Math.sqrt(x ** 2 + y ** 2 + z ** 2);
       setMag(m);
 
       const now = Date.now();
-      // if (m > sensitivityRef.current && now > stepCooldown.current) {
-      if (m > 0.4 && m < 0.6 && now > stepCooldown.current) {
-        stepCooldown.current = now + 650;
 
-        const alpha = deviceOrientation.current;
-        pos.current.x += Math.sin(alpha) * STEP_LENGTH;
-        pos.current.y -= Math.cos(alpha) * STEP_LENGTH;
+      // ပိုတင်းကြပ်တဲ့ စစ်ဆေးမှု (m > 1.2 ဆိုတာ တော်တော်လေး လှုပ်မှ ရွေ့မှာပါ)
+      // ထိုင်ပြီး ရမ်းရုံနဲ့ မရွေ့စေချင်ရင် sensitivity ကို 1.2 ကနေ 1.5 ကြား ထားကြည့်ပါ
+      if (m > sensitivityRef.current && now > stepCooldown.current) {
+        // logic အသစ်- ဖုန်းကို ဘယ်ညာ (X-axis) ရမ်းတာထက်
+        // အပေါ်အောက်/ရှေ့တိုး (Y သို့မဟုတ် Z) က ပိုအားကောင်းမှ ခြေလှမ်းလို့ သတ်မှတ်မယ်
+        if (Math.abs(y) > Math.abs(x) || Math.abs(z) > Math.abs(x)) {
+          stepCooldown.current = now + 750; // ခြေလှမ်း Cooldown ကို 750ms ထိ တိုးလိုက်ပါ
 
-        setIsOutOfBounds(
-          pos.current.x < 0 ||
-            pos.current.x > ROOM_SIZE_FT ||
-            pos.current.y < 0 ||
-            pos.current.y > ROOM_SIZE_FT,
-        );
+          const alpha = deviceOrientation.current;
+          pos.current.x += Math.sin(alpha) * STEP_LENGTH;
+          pos.current.y -= Math.cos(alpha) * STEP_LENGTH;
+          setIsOutOfBounds(
+            pos.current.x < 0 ||
+              pos.current.x > ROOM_SIZE_FT ||
+              pos.current.y < 0 ||
+              pos.current.y > ROOM_SIZE_FT,
+          );
 
-        pos.current.x = Math.max(
-          -0.5,
-          Math.min(ROOM_SIZE_FT + 0.5, pos.current.x),
-        );
-        pos.current.y = Math.max(
-          -0.5,
-          Math.min(ROOM_SIZE_FT + 0.5, pos.current.y),
-        );
-        updateNearest(pos.current, boxesRef.current);
-        setPlayerPosition({ ...pos.current });
+          pos.current.x = Math.max(
+            -0.5,
+            Math.min(ROOM_SIZE_FT + 0.5, pos.current.x),
+          );
+          pos.current.y = Math.max(
+            -0.5,
+            Math.min(ROOM_SIZE_FT + 0.5, pos.current.y),
+          );
+          updateNearest(pos.current, boxesRef.current);
+          setPlayerPosition({ ...pos.current });
+        }
       }
     });
 
