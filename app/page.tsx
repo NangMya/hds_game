@@ -272,7 +272,7 @@ export default function RadarVirtualWorldFix() {
   return (
     <main
       ref={gameRef}
-      className={`fixed inset-0 w-full h-[100vh] bg-black overflow-hidden flex flex-col items-center justify-center font-sans select-none touch-none transition-all duration-300 ${isOutOfBounds ? "ring-16px ring-inset ring-red-600/80 shadow-[0_0_60px_rgba(220,38,38,0.8)]" : ""}`}
+      className={`fixed inset-0 w-full h-[100vh] bg-black overflow-hidden flex flex-col items-center justify-center font-sans select-none touch-none transition-all duration-300 ${isOutOfBounds ? "ring-16 ring-inset ring-red-600/80 shadow-[0_0_60px_rgba(220,38,38,0.8)]" : ""}`}
     >
       {isStarted && !forceFinalScreen && (
         <button
