@@ -49,8 +49,6 @@ export default function RadarVirtualWorldFix() {
   const [user, setUser] = useState<{ id: number; username: string } | null>(
     null,
   );
-  const lastMag = useRef(0);
-  const peakThreshold = useRef(0.8);
 
   const gameRef = useRef<HTMLDivElement>(null);
   const pos = useRef({ x: ROOM_SIZE_FT / 2, y: ROOM_SIZE_FT / 2 });
@@ -230,7 +228,8 @@ export default function RadarVirtualWorldFix() {
       setMag(m);
 
       const now = Date.now();
-      if (m > sensitivityRef.current && now > stepCooldown.current) {
+      // if (m > sensitivityRef.current && now > stepCooldown.current) {
+      if (m > 0.4 && m < 0.6 && now > stepCooldown.current) {
         stepCooldown.current = now + 650;
 
         const alpha = deviceOrientation.current;
