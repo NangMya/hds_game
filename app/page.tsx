@@ -121,7 +121,9 @@ export default function RadarVirtualWorldFix() {
         b.id === box.id ? { ...b, collected: true } : b,
       );
       setBoxes(updatedBoxes);
+      setInventory((prev) => [...prev, box.id]);
       updateNearest(pos.current, updatedBoxes);
+      setMessage("Added to Bag! 🎒");
       try {
         const response = await fetch("/api/collect", {
           method: "POST",
@@ -133,12 +135,18 @@ export default function RadarVirtualWorldFix() {
           }),
         });
 
-        if (response.ok) {
-          setInventory((prev) => [...prev, box.id]);
-          setMessage("Added to Bag! 🎒");
+        // ၂။ တကယ်လို့ API က အလုပ်မလုပ်ရင် (Success မဖြစ်ရင်)
+        if (!response.ok) {
+          throw new Error("Failed to save");
         }
       } catch (err) {
-        console.error("Save error:", err);
+        console.error("Save error, rolling back:", err);
+
+        setBoxes(boxes); // မူလ boxes state ကို ပြန်သုံးမယ်
+        setInventory((prev) => prev.filter((id) => id !== box.id)); // အိတ်ထဲကနေ ပြန်ထုတ်မယ်
+        updateNearest(pos.current, boxes); // Radar ကို ပြန်ချိန်မယ်
+
+        setMessage("❌ Connection Error! Try again.");
       }
     } else {
       setMessage(`Too far! Move closer.`);
@@ -219,19 +227,11 @@ export default function RadarVirtualWorldFix() {
 
       // ... inside devicemotion ...
       const m = Math.sqrt(acc.x ** 2 + acc.y! ** 2 + acc.z! ** 2);
-
-      // Low-pass filter: ဆောင့်ခနဲဖြစ်တဲ့ noise တွေကို ဖယ်ပြီး လှုပ်ရှားမှုကို ချောမွေ့အောင်လုပ်တာ
-      const smoothedMag = 0.7 * lastMag.current + 0.3 * m;
-      lastMag.current = smoothedMag;
-      setMag(smoothedMag);
+      setMag(m);
 
       const now = Date.now();
-
-      // အပေါ်ကန့်သတ်ချက် (m < 0.6) ကို ဖြုတ်လိုက်ပါ
-      // smoothedMag က threshold ထက် ကျော်ရမယ်၊
-      // ပြီးတော့ လက်ရှိ m က အကျဘက်ကို ပြန်ရောက်နေရမယ် (Peak ဖြစ်ပြီးမှ step မှတ်တာ)
-      if (smoothedMag > peakThreshold.current && now > stepCooldown.current) {
-        stepCooldown.current = now + 600;
+      if (m > sensitivityRef.current && now > stepCooldown.current) {
+        stepCooldown.current = now + 650;
 
         const alpha = deviceOrientation.current;
         pos.current.x += Math.sin(alpha) * STEP_LENGTH;
