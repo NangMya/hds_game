@@ -217,7 +217,7 @@ export default function RadarVirtualWorldFix() {
 
       // အနည်းဆုံး threshold ကို 0.8 လောက်အထိ မြှင့်ထားလိုက်ပါ (ဖုန်းရမ်းရုံနဲ့ မရွေ့အောင်)
       // High-end ဖုန်းတွေမှာ sensor က သိပ်တိကျတော့ noise နည်းပေမယ့် sensitivity ကို မြှင့်ထားမှရမယ်
-      sensitivityRef.current = Math.max(0.8, maxNoise * 1.8);
+      sensitivityRef.current = Math.max(0.4, maxNoise * 1.8);
 
       console.log("New Threshold:", sensitivityRef.current);
       setIsLoading(false);
