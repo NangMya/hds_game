@@ -166,6 +166,8 @@ export default function RadarVirtualWorldFix() {
 
       // ... inside devicemotion ...
       const m = Math.sqrt(acc.x ** 2 + acc.y! ** 2 + acc.z! ** 2);
+      setMag(m);
+
       // Low-pass filter (လှုပ်ခါနေတဲ့ noise တွေကို ဖယ်ထုတ်ဖို့)
       const filteredMag = 0.8 * lastMag.current + 0.2 * m;
       lastMag.current = filteredMag;
