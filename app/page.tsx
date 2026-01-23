@@ -310,7 +310,7 @@ export default function RadarVirtualWorldFix() {
                   {message}
                 </p>
               )}
-              <p><small>Mag - {mag}</small></p>
+              <p className="text-xs text-white"><small>Mag - {mag.toFixed(2)}</small></p>
             </div>
           </div>
         </>
