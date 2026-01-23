@@ -1,0 +1,22 @@
+{
+    "sourceFile": "app/api/collect/route.ts",
+    "activeCommit": 0,
+    "commits": [
+        {
+            "activePatchIndex": 1,
+            "patches": [
+                {
+                    "date": 1768815130777,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n"
+                },
+                {
+                    "date": 1768815549391,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -3,22 +3,27 @@\n import { prisma } from '@/lib/prisma';\r\n \r\n export async function POST(req: Request) {\r\n   try {\r\n-    const { userId, pointsToAdd } = await req.json();\r\n+    const { userId, pointsToAdd, itemName } = await req.json();\r\n \r\n-    // Database ထဲမှာ User ရဲ့ Point ကို သွားပေါင်းထည့်မယ်\r\n-    const updatedUser = await prisma.user.update({\r\n-      where: { id: userId },\r\n-      data: {\r\n-        points: {\r\n-          increment: pointsToAdd, // လက်ရှိရှိတဲ့ point ထဲကို ထပ်ပေါင်းတာ\r\n+    const result = await prisma.$transaction([\r\n+      // ၁။ User ရဲ့ Point ကို တိုးမယ်\r\n+      prisma.user.update({\r\n+        where: { id: userId },\r\n+        data: { points: { increment: pointsToAdd } },\r\n+      }),\r\n+      // ၂။ Item အသစ်ကို Inventory ထဲ ထည့်မယ်\r\n+      prisma.item.create({\r\n+        data: {\r\n+          name: itemName,\r\n+          type: \"Common\",\r\n+          userId: userId,\r\n         },\r\n-      },\r\n-    });\r\n+      }),\r\n+    ]);\r\n \r\n-    return NextResponse.json({ success: true, points: updatedUser.points });\r\n+    return NextResponse.json({ success: true, points: result[0].points });\r\n   } catch (error) {\r\n-    console.error(\"Update Error:\", error);\r\n-    return NextResponse.json({ success: false, error: \"Failed to update score\" }, { status: 500 });\r\n+    return NextResponse.json({ success: false }, { status: 500 });\r\n   }\r\n }\n\\ No newline at end of file\n"
+                }
+            ],
+            "date": 1768815130777,
+            "name": "Commit-0",
+            "content": "// src/app/api/collect/route.ts\r\nimport { NextResponse } from 'next/server';\r\nimport { prisma } from '@/lib/prisma';\r\n\r\nexport async function POST(req: Request) {\r\n  try {\r\n    const { userId, pointsToAdd } = await req.json();\r\n\r\n    // Database ထဲမှာ User ရဲ့ Point ကို သွားပေါင်းထည့်မယ်\r\n    const updatedUser = await prisma.user.update({\r\n      where: { id: userId },\r\n      data: {\r\n        points: {\r\n          increment: pointsToAdd, // လက်ရှိရှိတဲ့ point ထဲကို ထပ်ပေါင်းတာ\r\n        },\r\n      },\r\n    });\r\n\r\n    return NextResponse.json({ success: true, points: updatedUser.points });\r\n  } catch (error) {\r\n    console.error(\"Update Error:\", error);\r\n    return NextResponse.json({ success: false, error: \"Failed to update score\" }, { status: 500 });\r\n  }\r\n}"
+        }
+    ]
+}

@@ -1,0 +1,18 @@
+{
+    "sourceFile": "src/lib/prisma.ts",
+    "activeCommit": 0,
+    "commits": [
+        {
+            "activePatchIndex": 0,
+            "patches": [
+                {
+                    "date": 1768815312704,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n"
+                }
+            ],
+            "date": 1768815312704,
+            "name": "Commit-0",
+            "content": "// src/lib/prisma.ts\r\nimport { PrismaClient } from '@prisma/client';\r\n\r\nconst globalForPrisma = global as unknown as { prisma: PrismaClient };\r\n\r\nexport const prisma =\r\n  globalForPrisma.prisma || new PrismaClient();\r\n\r\nif (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;"
+        }
+    ]
+}

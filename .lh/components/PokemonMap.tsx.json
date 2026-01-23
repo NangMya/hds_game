@@ -1,0 +1,18 @@
+{
+    "sourceFile": "components/PokemonMap.tsx",
+    "activeCommit": 0,
+    "commits": [
+        {
+            "activePatchIndex": 0,
+            "patches": [
+                {
+                    "date": 1768968671940,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n"
+                }
+            ],
+            "date": 1768968671940,
+            "name": "Commit-0",
+            "content": "import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet';\r\nimport 'leaflet/dist/leaflet.css';\r\nimport { useEffect, useState } from 'react';\r\n\r\n// User ကို Screen ရဲ့ အလယ်မှာ အမြဲရှိနေစေဖို့ Map ကို Move လုပ်ပေးမယ့် Component\r\nfunction MapFollower({ position }) {\r\n  const map = useMap();\r\n  useEffect(() => {\r\n    map.setView(position, 20); // Zoom level ကို ၂၀ လောက်ထားပါ\r\n  }, [position, map]);\r\n  return null;\r\n}\r\n\r\nexport default function PokemonMap() {\r\n  const [playerPosition, setPlayerPosition] = useState([16.8403, 96.1735]); // Center of the room\r\n  const roomBounds = [\r\n    [16.8402, 96.1734], // Bottom Left\r\n    [16.8404, 96.1736]  // Top Right\r\n  ];\r\n\r\n  // GPS ဖမ်းပြီး Position Update လုပ်ခြင်း\r\n  useEffect(() => {\r\n    const watchId = navigator.geolocation.watchPosition((pos) => {\r\n      const { latitude, longitude } = pos.coords;\r\n      \r\n      // Boundary စစ်ဆေးခြင်း (ပေ ၂၀ ပတ်လည်ထက် ကျော်မကျော်)\r\n      if (latitude >= roomBounds[0][0] && latitude <= roomBounds[1][0] &&\r\n          longitude >= roomBounds[0][1] && longitude <= roomBounds[1][1]) {\r\n        setPlayerPosition([latitude, longitude]);\r\n      }\r\n    }, null, { enableHighAccuracy: true });\r\n\r\n    return () => navigator.geolocation.clearWatch(watchId);\r\n  }, []);\r\n\r\n  return (\r\n    <div style={{ height: '100vh', width: '100vw' }}>\r\n      <MapContainer \r\n        center={playerPosition} \r\n        zoom={20} \r\n        style={{ height: '100%', width: '100%' }}\r\n        dragging={false} // User ကို Map ဆွဲခွင့်မပေးဘဲ ကိုယ်တိုင်လမ်းလျှောက်မှ ရွေ့အောင်လုပ်ခြင်း\r\n      >\r\n        {/* Virtual Map အတွက် Custom Image Layer သို့မဟုတ် Google Maps Tiles */}\r\n        <TileLayer\r\n          url=\"https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png\" // ဒီနေရာမှာ Virtual Map URL ထည့်ပါ\r\n        />\r\n        \r\n        <MapFollower position={playerPosition} />\r\n        \r\n        {/* Player Icon */}\r\n        <Marker position={playerPosition} />\r\n        \r\n        {/* Collectible Items တွေကို Database ကနေ ခေါ်ပြီး ဒီမှာ Loop ပတ်ပြပါ */}\r\n      </MapContainer>\r\n    </div>\r\n  );\r\n}"
+        }
+    ]
+}

@@ -1,0 +1,18 @@
+{
+    "sourceFile": "src/components/FreeMap.tsx",
+    "activeCommit": 0,
+    "commits": [
+        {
+            "activePatchIndex": 0,
+            "patches": [
+                {
+                    "date": 1768813763796,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n"
+                }
+            ],
+            "date": 1768813763796,
+            "name": "Commit-0",
+            "content": "\"use client\";\r\nimport { MapContainer, TileLayer, Marker, Popup, useMap } from \"react-leaflet\";\r\nimport \"leaflet/dist/leaflet.css\";\r\nimport L from \"leaflet\";\r\nimport { useEffect, useState } from \"react\";\r\n\r\n// Marker Icon error အတွက် fix လုပ်ခြင်း\r\nconst icon = L.icon({\r\n  iconUrl: \"https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png\",\r\n  shadowUrl: \"https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png\",\r\n});\r\n\r\n// Map ကို User Location ရောက်အောင် ရွှေ့ပေးမယ့် Component\r\nfunction ChangeView({ center }: { center: [number, number] }) {\r\n  const map = useMap();\r\n  map.setView(center, map.getZoom());\r\n  return null;\r\n}\r\n\r\nexport default function FreeMap({ boxes }: { boxes: any[] }) {\r\n  const [position, setPosition] = useState<[number, number]>([16.8400, 96.1730]);\r\n\r\n  useEffect(() => {\r\n    const watchId = navigator.geolocation.watchPosition(\r\n      (pos) => {\r\n        setPosition([pos.coords.latitude, pos.coords.longitude]);\r\n      },\r\n      undefined,\r\n      { enableHighAccuracy: true }\r\n    );\r\n    return () => navigator.geolocation.clearWatch(watchId);\r\n  }, []);\r\n\r\n  return (\r\n    <div className=\"h-screen w-full\">\r\n      <MapContainer center={position} zoom={19} className=\"h-full w-full\">\r\n        {/* လုံးဝ Free ရတဲ့ OpenStreetMap Tile */}\r\n        <TileLayer\r\n          url=\"https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png\"\r\n          attribution='&copy; <a href=\"https://www.openstreetmap.org/copyright\">OpenStreetMap</a>'\r\n        />\r\n\r\n        {/* User Marker */}\r\n        <ChangeView center={position} />\r\n        <Marker position={position} icon={icon}>\r\n          <Popup>မင်းဒီမှာရှိနေတယ်</Popup>\r\n        </Marker>\r\n\r\n        {/* Game Boxes */}\r\n        {boxes.map((box) => (\r\n          <Marker key={box.id} position={[box.lat, box.lng]} icon={icon}>\r\n            <Popup>\r\n              <button onClick={() => alert(\"Collected!\")}>သေတ္တာဖွင့်ရန် 🎁</button>\r\n            </Popup>\r\n          </Marker>\r\n        ))}\r\n      </MapContainer>\r\n    </div>\r\n  );\r\n}"
+        }
+    ]
+}

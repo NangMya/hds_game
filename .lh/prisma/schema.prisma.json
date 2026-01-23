@@ -1,0 +1,46 @@
+{
+    "sourceFile": "prisma/schema.prisma",
+    "activeCommit": 0,
+    "commits": [
+        {
+            "activePatchIndex": 7,
+            "patches": [
+                {
+                    "date": 1768811741023,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n"
+                },
+                {
+                    "date": 1768813029190,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -0,0 +1,11 @@\n+// prisma/schema.prisma\n+\n+generator client {\n+  provider = \"prisma-client-js\"\n+}\n+\n+datasource db {\n+  provider = \"mysql\"\n+  // url property ကို ဖြုတ်လိုက်ပါ သို့မဟုတ် comment ပိတ်ပါ\n+  adapter  = \"mysql\" \n+}\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1768813037566,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -6,38 +6,5 @@\n \n datasource db {\n   provider = \"mysql\"\n   // url property ကို ဖြုတ်လိုက်ပါ သို့မဟုတ် comment ပိတ်ပါ\n-  adapter  = \"mysql\" \n-}\n-// This is your Prisma schema file,\n-// learn more about it in the docs: https://pris.ly/d/prisma-schema\n-\n-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?\n-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init\n-\n-// generator client {\n-//   provider = \"prisma-client\"\n-//   output   = \"../app/generated/prisma\"\n-// }\n-\n-generator client {\n-  provider = \"prisma-client-js\"\n-}\n-\n-datasource db {\n-  provider = \"mysql\"\n-  url      = env(\"DATABASE_URL\")\n-}\n-\n-model User {\n-  id       Int      @id @default(autoincrement())\n-  username String   @unique\n-  points   Int      @default(0)\n-}\n-\n-model Box {\n-  id       Int     @id @default(autoincrement())\n-  lat      Float\n-  lng      Float\n-  isOpened Boolean @default(false)\n }\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1768813243193,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -0,0 +1,23 @@\n+// prisma/schema.prisma\n+\n+generator client {\n+  provider = \"prisma-client-js\"\n+}\n+\n+datasource db {\n+  provider = \"mysql\"\n+  url      = env(\"DATABASE_URL\")\n+}\n+\n+model User {\n+  id       Int      @id @default(autoincrement())\n+  username String   @unique\n+  points   Int      @default(0)\n+}\n+\n+model Box {\n+  id       Int     @id @default(autoincrement())\n+  lat      Float\n+  lng      Float\n+  isOpened Boolean @default(false)\n+}\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1768813402169,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -1,6 +1,4 @@\n-// prisma/schema.prisma\n-\n generator client {\n   provider = \"prisma-client-js\"\n }\n \n@@ -19,15 +17,5 @@\n   id       Int     @id @default(autoincrement())\n   lat      Float\n   lng      Float\n   isOpened Boolean @default(false)\n-}\n-// prisma/schema.prisma\n-\n-generator client {\n-  provider = \"prisma-client-js\"\n-}\n-\n-datasource db {\n-  provider = \"mysql\"\n-  // url property ကို ဖြုတ်လိုက်ပါ သို့မဟုတ် comment ပိတ်ပါ\n }\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1768815461077,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -0,0 +1,23 @@\n+generator client {\n+  provider = \"prisma-client-js\"\n+}\n+\n+datasource db {\n+  provider = \"mysql\"\n+  url      = env(\"DATABASE_URL\")\n+}\n+\n+model User {\n+  id       Int      @id @default(autoincrement())\n+  username String   @unique\n+  points   Int      @default(0)\n+}\n+\n+model Item {\n+  id        Int      @id @default(autoincrement())\n+  name      String   // e.g., \"ရွှေသေတ္တာ\", \"ဆေးထုပ်\"\n+  type      String   // e.g., \"Gift\", \"Potion\"\n+  userId    Int\n+  user      User     @relation(fields: [userId], references: [id])\n+  createdAt DateTime @default(now())\n+}\n\\ No newline at end of file\n"
+                },
+                {
+                    "date": 1768815493754,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -12,8 +12,15 @@\n   username String   @unique\n   points   Int      @default(0)\n }\n \n+model Box {\n+  id       Int     @id @default(autoincrement())\n+  lat      Float\n+  lng      Float\n+  isOpened Boolean @default(false)\n+}\n+\n model Item {\n   id        Int      @id @default(autoincrement())\n   name      String   // e.g., \"ရွှေသေတ္တာ\", \"ဆေးထုပ်\"\n   type      String   // e.g., \"Gift\", \"Potion\"\n"
+                },
+                {
+                    "date": 1768815511696,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -7,11 +7,12 @@\n   url      = env(\"DATABASE_URL\")\n }\n \n model User {\n-  id       Int      @id @default(autoincrement())\n-  username String   @unique\n-  points   Int      @default(0)\n+  id       Int    @id @default(autoincrement())\n+  username String @unique\n+  points   Int    @default(0)\n+  items    Item[]\n }\n \n model Box {\n   id       Int     @id @default(autoincrement())\n@@ -21,10 +22,10 @@\n }\n \n model Item {\n   id        Int      @id @default(autoincrement())\n-  name      String   // e.g., \"ရွှေသေတ္တာ\", \"ဆေးထုပ်\"\n-  type      String   // e.g., \"Gift\", \"Potion\"\n+  name      String // e.g., \"ရွှေသေတ္တာ\", \"ဆေးထုပ်\"\n+  type      String // e.g., \"Gift\", \"Potion\"\n   userId    Int\n   user      User     @relation(fields: [userId], references: [id])\n\\ No newline at end of file\n   createdAt DateTime @default(now())\n-}\n+}\n"
+                }
+            ],
+            "date": 1768811741023,
+            "name": "Commit-0",
+            "content": "// This is your Prisma schema file,\n// learn more about it in the docs: https://pris.ly/d/prisma-schema\n\n// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?\n// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init\n\n// generator client {\n//   provider = \"prisma-client\"\n//   output   = \"../app/generated/prisma\"\n// }\n\ngenerator client {\n  provider = \"prisma-client-js\"\n}\n\ndatasource db {\n  provider = \"mysql\"\n  url      = env(\"DATABASE_URL\")\n}\n\nmodel User {\n  id       Int      @id @default(autoincrement())\n  username String   @unique\n  points   Int      @default(0)\n}\n\nmodel Box {\n  id       Int     @id @default(autoincrement())\n  lat      Float\n  lng      Float\n  isOpened Boolean @default(false)\n}"
+        }
+    ]
+}

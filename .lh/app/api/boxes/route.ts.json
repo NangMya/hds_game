@@ -1,0 +1,26 @@
+{
+    "sourceFile": "app/api/boxes/route.ts",
+    "activeCommit": 0,
+    "commits": [
+        {
+            "activePatchIndex": 2,
+            "patches": [
+                {
+                    "date": 1768813461304,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n"
+                },
+                {
+                    "date": 1768813773918,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -1,6 +1,5 @@\n import { NextResponse } from 'next/server';\r\n-import { prisma } from '@/lib/prisma';\r\n \r\n export async function POST(req: Request) {\r\n   const { lat, lng } = await req.json();\r\n   const newBox = await prisma.box.create({\r\n"
+                },
+                {
+                    "date": 1768813779373,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -1,5 +1,6 @@\n import { NextResponse } from 'next/server';\r\n+import { prisma } from '@/lib/prisma';\r\n \r\n export async function POST(req: Request) {\r\n   const { lat, lng } = await req.json();\r\n   const newBox = await prisma.box.create({\r\n"
+                }
+            ],
+            "date": 1768813461304,
+            "name": "Commit-0",
+            "content": "import { NextResponse } from 'next/server';\r\nimport { prisma } from '@/lib/prisma';\r\n\r\nexport async function POST(req: Request) {\r\n  const { lat, lng } = await req.json();\r\n  const newBox = await prisma.box.create({\r\n    data: { lat, lng }\r\n  });\r\n  return NextResponse.json(newBox);\r\n}\r\n\r\nexport async function GET() {\r\n  const boxes = await prisma.box.findMany();\r\n  return NextResponse.json(boxes);\r\n}"
+        }
+    ]
+}

@@ -1,0 +1,22 @@
+{
+    "sourceFile": "src/components/MapGame.tsx",
+    "activeCommit": 0,
+    "commits": [
+        {
+            "activePatchIndex": 1,
+            "patches": [
+                {
+                    "date": 1768813537632,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n"
+                },
+                {
+                    "date": 1768813580970,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -5,9 +5,26 @@\n \r\n export default function MapGame() {\r\n   const [userLocation, setUserLocation] = useState({ lat: 16.8400, lng: 96.1730 });\r\n   const [boxes, setBoxes] = useState([]);\r\n+const handleCollect = async (boxId: number, boxLat: number, boxLng: number) => {\r\n+  // Distance ကို ရိုးရိုးရှင်းရှင်း စစ်ဆေးခြင်း (Pythagorean theorem)\r\n+  const dist = Math.sqrt(Math.pow(boxLat - userLocation.lat, 2) + Math.pow(boxLng - userLocation.lng, 2));\r\n \r\n+  if (dist < 0.0001) { // ဒါက အနီးကပ်ဆုံး range ပါ\r\n+    const res = await fetch('/api/collect', {\r\n+      method: 'POST',\r\n+      body: JSON.stringify({ boxId, userId: 1 }), // userId ကို လောလောဆယ် ၁ လို့ ထားပါ\r\n+    });\r\n+    \r\n+    if (res.ok) {\r\n+      alert(\"Box ရသွားပါပြီ!\");\r\n+      // Map ကို update ပြန်လုပ်ဖို့ Box list ကို ပြန်ခေါ်ပါ\r\n+    }\r\n+  } else {\r\n+    alert(\"အရမ်းဝေးနေပါသေးတယ်၊ အနားကို လမ်းလျှောက်သွားပါ!\");\r\n+  }\r\n+};\r\n   // ၁။ Database ထဲက Box တွေကို ခေါ်ယူခြင်း\r\n   useEffect(() => {\r\n     const fetchBoxes = async () => {\r\n       const res = await fetch('/api/boxes');\r\n"
+                }
+            ],
+            "date": 1768813537632,
+            "name": "Commit-0",
+            "content": "\"use client\";\r\nimport { useState, useEffect } from 'react';\r\nimport Map, { Marker } from 'react-map-gl';\r\nimport 'mapbox-gl/dist/mapbox-gl.css';\r\n\r\nexport default function MapGame() {\r\n  const [userLocation, setUserLocation] = useState({ lat: 16.8400, lng: 96.1730 });\r\n  const [boxes, setBoxes] = useState([]);\r\n\r\n  // ၁။ Database ထဲက Box တွေကို ခေါ်ယူခြင်း\r\n  useEffect(() => {\r\n    const fetchBoxes = async () => {\r\n      const res = await fetch('/api/boxes');\r\n      const data = await res.json();\r\n      setBoxes(data);\r\n    };\r\n    fetchBoxes();\r\n  }, []);\r\n\r\n  // ၂။ User Location ကို Real-time စောင့်ကြည့်ခြင်း\r\n  useEffect(() => {\r\n    const watchId = navigator.geolocation.watchPosition(\r\n      (pos) => {\r\n        setUserLocation({\r\n          lat: pos.coords.latitude,\r\n          lng: pos.coords.longitude\r\n        });\r\n      },\r\n      (err) => console.error(err),\r\n      { enableHighAccuracy: true }\r\n    );\r\n    return () => navigator.geolocation.clearWatch(watchId);\r\n  }, []);\r\n\r\n  return (\r\n    <div className=\"h-screen w-full relative\">\r\n      <Map\r\n        latitude={userLocation.lat}\r\n        longitude={userLocation.lng}\r\n        initialViewState={{ zoom: 19, pitch: 50 }}\r\n        style={{ width: \"100vw\", height: \"100vh\" }}\r\n        mapStyle=\"mapbox://styles/mapbox/navigation-night-v1\" // Game ပုံစံ Map Style\r\n        mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN}\r\n      >\r\n        {/* User (အလယ်မှာ အမြဲရှိနေမယ့် Marker) */}\r\n        <Marker latitude={userLocation.lat} longitude={userLocation.lng}>\r\n          <div className=\"w-10 h-10 bg-blue-500 rounded-full border-4 border-white shadow-[0_0_15px_rgba(59,130,246,0.8)]\" />\r\n        </Marker>\r\n\r\n        {/* Database ထဲက Box များကို Map ပေါ်မှာ Marker အနေနဲ့ ပြခြင်း */}\r\n        {boxes.map((box: any) => (\r\n          <Marker key={box.id} latitude={box.lat} longitude={box.lng}>\r\n            <div className=\"cursor-pointer hover:scale-125 transition-transform text-4xl\">\r\n              🎁\r\n            </div>\r\n          </Marker>\r\n        ))}\r\n      </Map>\r\n    </div>\r\n  );\r\n}"
+        }
+    ]
+}
