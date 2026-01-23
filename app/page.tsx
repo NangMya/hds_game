@@ -56,6 +56,10 @@ export default function RadarVirtualWorldFix() {
   const pos = useRef({ x: ROOM_SIZE_FT / 2, y: ROOM_SIZE_FT / 2 });
   const stepCooldown = useRef(0);
   const deviceOrientation = useRef(0);
+
+  // အလိုအလျောက်ညှိပေးမည့် Sensitivity Threshold
+  const sensitivityRef = useRef(0.5);
+
   useEffect(() => {
     boxesRef.current = boxes;
     const savedUser = localStorage.getItem("game_user");
@@ -146,10 +150,59 @@ export default function RadarVirtualWorldFix() {
     const DM = DeviceMotionEvent as any;
     if (typeof DM.requestPermission === "function") {
       const res = await DM.requestPermission();
-      if (res === "granted") initGame();
+      if (res === "granted") runCalibration();
     } else {
-      initGame();
+      runCalibration();
     }
+
+    // const DM = DeviceMotionEvent as any;
+    // if (typeof DM.requestPermission === "function") {
+    //   const res = await DM.requestPermission();
+    //   if (res === "granted") initGame();
+    // } else {
+    //   initGame();
+    // }
+  };
+
+  const runCalibration = () => {
+    setIsLoading(true);
+    let samples: number[] = [];
+
+    const capture = (e: DeviceMotionEvent) => {
+      const acc = e.acceleration;
+      if (!acc) return;
+      const m = Math.sqrt(
+        (acc.x || 0) ** 2 + (acc.y || 0) ** 2 + (acc.z || 0) ** 2,
+      );
+      samples.push(m);
+    };
+
+    window.addEventListener("devicemotion", capture);
+
+    // ၁ စက္ကန့်အတွင်း Sensor Noise ကိုတိုင်းတာပြီး Threshold ညှိမယ်
+    setTimeout(() => {
+      window.removeEventListener("devicemotion", capture);
+      const avgNoise =
+        samples.length > 0
+          ? samples.reduce((a, b) => a + b) / samples.length
+          : 0.05;
+
+      // ဖုန်းအလိုက် ညှိယူခြင်း
+      if (avgNoise > 0.12) {
+        sensitivityRef.current = 0.9; // High-end/iPhone (High Noise)
+      } else if (avgNoise > 0.06) {
+        sensitivityRef.current = 0.6; // Mid-range
+      } else {
+        sensitivityRef.current = 0.35; // Budget Android (Low Noise/Sensitivity)
+      }
+
+      console.log(
+        "Calibration Done. Threshold set to:",
+        sensitivityRef.current,
+      );
+      setIsLoading(false);
+      initGame();
+    }, 1000);
   };
 
   const initGame = () => {
@@ -205,7 +258,14 @@ export default function RadarVirtualWorldFix() {
     });
 
     window.addEventListener("deviceorientation", (e) => {
-      let alpha = (e as any).webkitCompassHeading || 360 - (e.alpha || 0);
+      let alpha = 0;
+      if ((e as any).webkitCompassHeading) {
+        // for ios
+        alpha = (e as any).webkitCompassHeading;
+      } else {
+        // for android
+        alpha = 360 - (e.alpha || 0);
+      }
       deviceOrientation.current = (alpha * Math.PI) / 180;
     });
     setIsStarted(true);
