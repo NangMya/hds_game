@@ -299,7 +299,8 @@ export default function RadarVirtualWorldFix() {
 
       // ပိုတင်းကြပ်တဲ့ စစ်ဆေးမှု (m > 1.2 ဆိုတာ တော်တော်လေး လှုပ်မှ ရွေ့မှာပါ)
       // ထိုင်ပြီး ရမ်းရုံနဲ့ မရွေ့စေချင်ရင် sensitivity ကို 1.2 ကနေ 1.5 ကြား ထားကြည့်ပါ
-      if (m > sensitivityRef.current && now > stepCooldown.current) {
+      if (m > sensitivityRef.current && m < 0.8 && now > stepCooldown.current) {
+      // if (m > sensitivityRef.current && now > stepCooldown.current) {
         // logic အသစ်- ဖုန်းကို ဘယ်ညာ (X-axis) ရမ်းတာထက်
         // အပေါ်အောက်/ရှေ့တိုး (Y သို့မဟုတ် Z) က ပိုအားကောင်းမှ ခြေလှမ်းလို့ သတ်မှတ်မယ်
         if (Math.abs(y) > Math.abs(x) || Math.abs(z) > Math.abs(x)) {
