@@ -23,17 +23,10 @@ const STEP_LENGTH = 0.5;
 const PICKUP_RANGE = 1;
 
 export default function RadarVirtualWorldFix() {
-  const [playerPosition, setPlayerPosition] = useState({
-    x: ROOM_SIZE_FT / 2,
-    y: ROOM_SIZE_FT / 2,
-  });
+  const [playerPosition, setPlayerPosition] = useState({ x: ROOM_SIZE_FT / 2, y: ROOM_SIZE_FT / 2  });
   const [boxes, setBoxes] = useState<Box[]>([]);
   const [inventory, setInventory] = useState<number[]>([]);
-  const [nearestInfo, setNearestInfo] = useState({
-    distance: 0,
-    angle: 0,
-    id: -1,
-  });
+  const [nearestInfo, setNearestInfo] = useState({ distance: 0, angle: 0, id: -1  });
   const [message, setMessage] = useState("");
   const [isStarted, setIsStarted] = useState(false);
   const [showBag, setShowBag] = useState(false);
@@ -46,18 +39,11 @@ export default function RadarVirtualWorldFix() {
   const [showQuitConfirm, setShowQuitConfirm] = useState(false);
   const [forceFinalScreen, setForceFinalScreen] = useState(false); // Quit လုပ်ရင် Victory screen ပြဖို့
   const [isSaved, setIsSaved] = useState(false);
-  const [user, setUser] = useState<{ id: number; username: string } | null>(
-    null,
-  );
-
+  const [user, setUser] = useState<{ id: number; username: string } | null>(null);
   const gameRef = useRef<HTMLDivElement>(null);
   const pos = useRef({ x: ROOM_SIZE_FT / 2, y: ROOM_SIZE_FT / 2 });
   const stepCooldown = useRef(0);
   const deviceOrientation = useRef(0);
-
-  // အလိုအလျောက်ညှိပေးမည့် Sensitivity Threshold
-  const sensitivityRef = useRef(0.8);
-
   useEffect(() => {
     boxesRef.current = boxes;
     const savedUser = localStorage.getItem("game_user");
@@ -119,9 +105,7 @@ export default function RadarVirtualWorldFix() {
         b.id === box.id ? { ...b, collected: true } : b,
       );
       setBoxes(updatedBoxes);
-      setInventory((prev) => [...prev, box.id]);
       updateNearest(pos.current, updatedBoxes);
-      setMessage("Added to Bag! 🎒");
       try {
         const response = await fetch("/api/collect", {
           method: "POST",
@@ -133,18 +117,12 @@ export default function RadarVirtualWorldFix() {
           }),
         });
 
-        // ၂။ တကယ်လို့ API က အလုပ်မလုပ်ရင် (Success မဖြစ်ရင်)
-        if (!response.ok) {
-          throw new Error("Failed to save");
+        if (response.ok) {
+          setInventory((prev) => [...prev, box.id]);
+          setMessage("Added to Bag! 🎒");
         }
       } catch (err) {
-        console.error("Save error, rolling back:", err);
-
-        setBoxes(boxes); // မူလ boxes state ကို ပြန်သုံးမယ်
-        setInventory((prev) => prev.filter((id) => id !== box.id)); // အိတ်ထဲကနေ ပြန်ထုတ်မယ်
-        updateNearest(pos.current, boxes); // Radar ကို ပြန်ချိန်မယ်
-
-        setMessage("❌ Connection Error! Try again.");
+        console.error("Save error:", err);
       }
     } else {
       setMessage(`Too far! Move closer.`);
@@ -156,190 +134,50 @@ export default function RadarVirtualWorldFix() {
     const DM = DeviceMotionEvent as any;
     if (typeof DM.requestPermission === "function") {
       const res = await DM.requestPermission();
-      if (res === "granted") runCalibration();
+      if (res === "granted") initGame();
     } else {
-      runCalibration();
-    }
-
-    // const DM = DeviceMotionEvent as any;
-    // if (typeof DM.requestPermission === "function") {
-    //   const res = await DM.requestPermission();
-    //   if (res === "granted") initGame();
-    // } else {
-    //   initGame();
-    // }
-  };
-
-  const runCalibration = () => {
-    setIsLoading(true);
-    let samples: number[] = [];
-
-    const capture = (e: DeviceMotionEvent) => {
-      const acc = e.acceleration;
-      if (!acc) return;
-      const m = Math.sqrt(
-        (acc.x || 0) ** 2 + (acc.y || 0) ** 2 + (acc.z || 0) ** 2,
-      );
-      samples.push(m);
-    };
-
-    window.addEventListener("devicemotion", capture);
-
-    // ၁ စက္ကန့်အတွင်း Sensor Noise ကိုတိုင်းတာပြီး Threshold ညှိမယ်
-    // setTimeout(() => {
-    //   window.removeEventListener("devicemotion", capture);
-    //   const avgNoise =
-    //     samples.length > 0
-    //       ? samples.reduce((a, b) => a + b) / samples.length
-    //       : 0.05;
-
-    //   // ဖုန်းအလိုက် ညှိယူခြင်း
-    //   if (avgNoise > 0.12) {
-    //     sensitivityRef.current = 0.9; // High-end/iPhone (High Noise)
-    //   } else if (avgNoise > 0.06) {
-    //     sensitivityRef.current = 0.6; // Mid-range
-    //   } else {
-    //     sensitivityRef.current = 0.35; // Budget Android (Low Noise/Sensitivity)
-    //   }
-
-    //   console.log(
-    //     "Calibration Done. Threshold set to:",
-    //     sensitivityRef.current,
-    //   );
-    //   setIsLoading(false);
-    //   initGame();
-    // }, 1000);
-
-    // runCalibration ထဲမှာ ပြင်ရန်
-    setTimeout(() => {
-      window.removeEventListener("devicemotion", capture);
-      const maxNoise = Math.max(...samples);
-
-      // အနည်းဆုံး threshold ကို 0.8 လောက်အထိ မြှင့်ထားလိုက်ပါ (ဖုန်းရမ်းရုံနဲ့ မရွေ့အောင်)
-      // High-end ဖုန်းတွေမှာ sensor က သိပ်တိကျတော့ noise နည်းပေမယ့် sensitivity ကို မြှင့်ထားမှရမယ်
-      sensitivityRef.current = Math.max(0.4, maxNoise * 1.8);
-
-      console.log("New Threshold:", sensitivityRef.current);
-      setIsLoading(false);
       initGame();
-    }, 1000);
+    }
   };
-
-  // bk
-  // const initGame = () => {
-  //   window.addEventListener("devicemotion", (e) => {
-  //     const acc = e.acceleration;
-  //     if (!acc || acc.x === null) return;
-  //     // const m = Math.sqrt(acc.x ** 2 + acc.y! ** 2 + acc.z! ** 2);
-  //     // setMag(m);
-
-  //     // const now = Date.now();
-  //     // if (m > 0.4 && m < 0.6 && now > stepCooldown.current) {
-  //     // Default value
-
-  //     // ... inside devicemotion ...
-  //     const m = Math.sqrt(acc.x ** 2 + acc.y! ** 2 + acc.z! ** 2);
-  //     setMag(m);
-
-  //     const now = Date.now();
-  //     if (m > sensitivityRef.current && now > stepCooldown.current) {
-  //       stepCooldown.current = now + 650;
-
-  //       const alpha = deviceOrientation.current;
-  //       pos.current.x += Math.sin(alpha) * STEP_LENGTH;
-  //       pos.current.y -= Math.cos(alpha) * STEP_LENGTH;
-
-  //       setIsOutOfBounds(
-  //         pos.current.x < 0 ||
-  //           pos.current.x > ROOM_SIZE_FT ||
-  //           pos.current.y < 0 ||
-  //           pos.current.y > ROOM_SIZE_FT,
-  //       );
-
-  //       pos.current.x = Math.max(
-  //         -0.5,
-  //         Math.min(ROOM_SIZE_FT + 0.5, pos.current.x),
-  //       );
-  //       pos.current.y = Math.max(
-  //         -0.5,
-  //         Math.min(ROOM_SIZE_FT + 0.5, pos.current.y),
-  //       );
-  //       updateNearest(pos.current, boxesRef.current);
-  //       setPlayerPosition({ ...pos.current });
-  //     }
-  //   });
-
-  //   window.addEventListener("deviceorientation", (e) => {
-  //     let alpha = 0;
-  //     if ((e as any).webkitCompassHeading) {
-  //       // for ios
-  //       alpha = (e as any).webkitCompassHeading;
-  //     } else {
-  //       // for android
-  //       alpha = 360 - (e.alpha || 0);
-  //     }
-  //     deviceOrientation.current = (alpha * Math.PI) / 180;
-  //   });
-  //   setIsStarted(true);
-  // };
 
   const initGame = () => {
     window.addEventListener("devicemotion", (e) => {
       const acc = e.acceleration;
       if (!acc || acc.x === null) return;
-      const x = acc.x;
-      const y = acc.y || 0;
-      const z = acc.z || 0;
 
-      // Total Magnitude ကို တွက်တယ်
-      const m = Math.sqrt(x ** 2 + y ** 2 + z ** 2);
+      const m = Math.sqrt(acc.x ** 2 + acc.y! ** 2 + acc.z! ** 2);
       setMag(m);
 
       const now = Date.now();
-
-      // ပိုတင်းကြပ်တဲ့ စစ်ဆေးမှု (m > 1.2 ဆိုတာ တော်တော်လေး လှုပ်မှ ရွေ့မှာပါ)
-      // ထိုင်ပြီး ရမ်းရုံနဲ့ မရွေ့စေချင်ရင် sensitivity ကို 1.2 ကနေ 1.5 ကြား ထားကြည့်ပါ
       if (m > 0.4 && m < 0.6 && now > stepCooldown.current) {
-      // if (m > sensitivityRef.current && m < 0.8 && now > stepCooldown.current) {
-      // if (m > sensitivityRef.current && now > stepCooldown.current) {
-        // logic အသစ်- ဖုန်းကို ဘယ်ညာ (X-axis) ရမ်းတာထက်
-        // အပေါ်အောက်/ရှေ့တိုး (Y သို့မဟုတ် Z) က ပိုအားကောင်းမှ ခြေလှမ်းလို့ သတ်မှတ်မယ်
-        if (Math.abs(y) > Math.abs(x) || Math.abs(z) > Math.abs(x)) {
-          stepCooldown.current = now + 750; // ခြေလှမ်း Cooldown ကို 750ms ထိ တိုးလိုက်ပါ
+        stepCooldown.current = now + 600;
 
-          const alpha = deviceOrientation.current;
-          pos.current.x += Math.sin(alpha) * STEP_LENGTH;
-          pos.current.y -= Math.cos(alpha) * STEP_LENGTH;
-          setIsOutOfBounds(
-            pos.current.x < 0 ||
-              pos.current.x > ROOM_SIZE_FT ||
-              pos.current.y < 0 ||
-              pos.current.y > ROOM_SIZE_FT,
-          );
+        const alpha = deviceOrientation.current;
+        pos.current.x += Math.sin(alpha) * STEP_LENGTH;
+        pos.current.y -= Math.cos(alpha) * STEP_LENGTH;
 
-          pos.current.x = Math.max(
-            -0.5,
-            Math.min(ROOM_SIZE_FT + 0.5, pos.current.x),
-          );
-          pos.current.y = Math.max(
-            -0.5,
-            Math.min(ROOM_SIZE_FT + 0.5, pos.current.y),
-          );
-          updateNearest(pos.current, boxesRef.current);
-          setPlayerPosition({ ...pos.current });
-        }
+        setIsOutOfBounds(
+          pos.current.x < 0 ||
+            pos.current.x > ROOM_SIZE_FT ||
+            pos.current.y < 0 ||
+            pos.current.y > ROOM_SIZE_FT,
+        );
+
+        pos.current.x = Math.max(
+          -0.5,
+          Math.min(ROOM_SIZE_FT + 0.5, pos.current.x),
+        );
+        pos.current.y = Math.max(
+          -0.5,
+          Math.min(ROOM_SIZE_FT + 0.5, pos.current.y),
+        );
+        updateNearest(pos.current, boxesRef.current);
+        setPlayerPosition({ ...pos.current });
       }
     });
 
     window.addEventListener("deviceorientation", (e) => {
-      let alpha = 0;
-      if ((e as any).webkitCompassHeading) {
-        // for ios
-        alpha = (e as any).webkitCompassHeading;
-      } else {
-        // for android
-        alpha = 360 - (e.alpha || 0);
-      }
+      let alpha = (e as any).webkitCompassHeading || 360 - (e.alpha || 0);
       deviceOrientation.current = (alpha * Math.PI) / 180;
     });
     setIsStarted(true);
@@ -373,7 +211,7 @@ export default function RadarVirtualWorldFix() {
     script.async = true;
     document.body.appendChild(script);
   }, []);
-
+  
   const triggerFireworks = () => {
     const duration = 5 * 1000;
     const animationEnd = Date.now() + duration;
@@ -434,7 +272,7 @@ export default function RadarVirtualWorldFix() {
   return (
     <main
       ref={gameRef}
-      className={`fixed inset-0 w-full h-[100vh] bg-black overflow-hidden flex flex-col items-center justify-center font-sans select-none touch-none transition-all duration-300 ${isOutOfBounds ? "ring-16 ring-inset ring-red-600/80 shadow-[0_0_60px_rgba(220,38,38,0.8)]" : ""}`}
+      className={`fixed inset-0 w-full h-[100vh] bg-black overflow-hidden flex flex-col items-center justify-center font-sans select-none touch-none transition-all duration-300 ${isOutOfBounds ? "ring-16px ring-inset ring-red-600/80 shadow-[0_0_60px_rgba(220,38,38,0.8)]" : ""}`}
     >
       {isStarted && !forceFinalScreen && (
         <button
@@ -472,9 +310,6 @@ export default function RadarVirtualWorldFix() {
                   {message}
                 </p>
               )}
-              <p className="text-xs text-white">
-                <small>Mag - {mag.toFixed(2)}</small>
-              </p>
             </div>
           </div>
         </>
@@ -581,6 +416,7 @@ export default function RadarVirtualWorldFix() {
         </div>
       )}
 
+   
       {(inventory.length === BOX_COUNT || forceFinalScreen) && (
         <div className="absolute inset-0 z-400 bg-black flex flex-col items-center justify-center p-8 text-center">
           <div
