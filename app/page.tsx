@@ -56,7 +56,7 @@ export default function RadarVirtualWorldFix() {
   const deviceOrientation = useRef(0);
 
   // အလိုအလျောက်ညှိပေးမည့် Sensitivity Threshold
-  const sensitivityRef = useRef(0.5);
+  const sensitivityRef = useRef(0.8);
 
   useEffect(() => {
     boxesRef.current = boxes;
@@ -186,26 +186,40 @@ export default function RadarVirtualWorldFix() {
     window.addEventListener("devicemotion", capture);
 
     // ၁ စက္ကန့်အတွင်း Sensor Noise ကိုတိုင်းတာပြီး Threshold ညှိမယ်
+    // setTimeout(() => {
+    //   window.removeEventListener("devicemotion", capture);
+    //   const avgNoise =
+    //     samples.length > 0
+    //       ? samples.reduce((a, b) => a + b) / samples.length
+    //       : 0.05;
+
+    //   // ဖုန်းအလိုက် ညှိယူခြင်း
+    //   if (avgNoise > 0.12) {
+    //     sensitivityRef.current = 0.9; // High-end/iPhone (High Noise)
+    //   } else if (avgNoise > 0.06) {
+    //     sensitivityRef.current = 0.6; // Mid-range
+    //   } else {
+    //     sensitivityRef.current = 0.35; // Budget Android (Low Noise/Sensitivity)
+    //   }
+
+    //   console.log(
+    //     "Calibration Done. Threshold set to:",
+    //     sensitivityRef.current,
+    //   );
+    //   setIsLoading(false);
+    //   initGame();
+    // }, 1000);
+
+    // runCalibration ထဲမှာ ပြင်ရန်
     setTimeout(() => {
       window.removeEventListener("devicemotion", capture);
-      const avgNoise =
-        samples.length > 0
-          ? samples.reduce((a, b) => a + b) / samples.length
-          : 0.05;
+      const maxNoise = Math.max(...samples);
 
-      // ဖုန်းအလိုက် ညှိယူခြင်း
-      if (avgNoise > 0.12) {
-        sensitivityRef.current = 0.9; // High-end/iPhone (High Noise)
-      } else if (avgNoise > 0.06) {
-        sensitivityRef.current = 0.6; // Mid-range
-      } else {
-        sensitivityRef.current = 0.35; // Budget Android (Low Noise/Sensitivity)
-      }
+      // အနည်းဆုံး threshold ကို 0.8 လောက်အထိ မြှင့်ထားလိုက်ပါ (ဖုန်းရမ်းရုံနဲ့ မရွေ့အောင်)
+      // High-end ဖုန်းတွေမှာ sensor က သိပ်တိကျတော့ noise နည်းပေမယ့် sensitivity ကို မြှင့်ထားမှရမယ်
+      sensitivityRef.current = Math.max(0.8, maxNoise * 1.8);
 
-      console.log(
-        "Calibration Done. Threshold set to:",
-        sensitivityRef.current,
-      );
+      console.log("New Threshold:", sensitivityRef.current);
       setIsLoading(false);
       initGame();
     }, 1000);
