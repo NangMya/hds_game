@@ -44,7 +44,7 @@ export default function RadarVirtualWorldFix() {
   const [usernameInput, setUsernameInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showQuitConfirm, setShowQuitConfirm] = useState(false);
-  const [forceFinalScreen, setForceFinalScreen] = useState(false); // Quit လုပ်ရင် Victory screen ပြဖို့
+  const [forceFinalScreen, setForceFinalScreen] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [user, setUser] = useState<{ id: number; username: string } | null>(
     null,
@@ -52,16 +52,15 @@ export default function RadarVirtualWorldFix() {
   const gameRef = useRef<HTMLDivElement>(null);
   const pos = useRef({ x: ROOM_SIZE_FT / 2, y: ROOM_SIZE_FT / 2 });
   const deviceOrientation = useRef(0);
-  const lastStepTime = useRef(0);
+  let lastStepTime = 0;
+  // const lastStepTime = useRef(0);
+  const rafRef = useRef<number | null>(null);
 
- 
   const [calibPopup, setCalibPopup] = useState<string | null>(null);
   const calibrating = useRef(false);
   const calibSamples = useRef<number[]>([]);
-  const stepThresholdRef = useRef(10); // default
+  const stepThresholdRef = useRef(10);
   const gravityBaseRef = useRef(9.5);
-  // const STEP_THRESHOLD = 10.0;
-  // const GRAVITY_BASE = 9.5;
 
   useEffect(() => {
     boxesRef.current = boxes;
@@ -176,12 +175,6 @@ export default function RadarVirtualWorldFix() {
 
   const finishCalibration = () => {
     calibrating.current = false;
-
-    if (calibSamples.current.length < 20) {
-      setMessage("⚠️ Calibration failed, using default");
-      return;
-    }
-
     const avg =
       calibSamples.current.reduce((a, b) => a + b, 0) /
       calibSamples.current.length;
@@ -190,108 +183,159 @@ export default function RadarVirtualWorldFix() {
 
     gravityBaseRef.current = avg * 0.96;
     stepThresholdRef.current = max * 0.85;
-    
+  };
+  const updatePositionThrottled = () => {
+    if (rafRef.current) return;
+    rafRef.current = requestAnimationFrame(() => {
+      setPlayerPosition({ ...pos.current });
+      updateNearest(pos.current, boxesRef.current);
+      rafRef.current = null;
+    });
   };
 
+  let peakStartTime = 0;
+  let isRising = false;
 
-  let peakStartTime = 0; // Magnitude စတက်တဲ့အချိန်
-  let isRising = false; // အရှိန်တက်နေသလား စစ်ဖို့
+  // const initGame = () => {
+  //   window.addEventListener("devicemotion", (e) => {
+  //     const acc = e.accelerationIncludingGravity;
+  //     if (!acc || acc.z === null) return;
 
-  const initGame = () => {
-    window.addEventListener("devicemotion", (e) => {
-      const acc = e.accelerationIncludingGravity;
-      if (!acc || acc.z === null) return;
+  //     const m = Math.sqrt(acc.x! ** 2 + acc.y! ** 2 + acc.z! ** 2);
+  //     setMag(m);
+  //     if (calibrating.current) {
+  //       calibSamples.current.push(m);
+  //       return;
+  //     }
 
-      const m = Math.sqrt(acc.x! ** 2 + acc.y! ** 2 + acc.z! ** 2);
-      setMag(m);
-      if (calibrating.current) {
-        calibSamples.current.push(m);
-        return; // don't move during calibration
-      }
+  //     const now = Date.now();
+  //     let STEP_THRESHOLD = stepThresholdRef.current;
+  //     let GRAVITY_BASE = gravityBaseRef.current;
+  //     if (stepThresholdRef.current <= 8.8) {
+  //       STEP_THRESHOLD = 9.5;
+  //     } else if (stepThresholdRef.current <= 10) {
+  //       STEP_THRESHOLD = 10;
+  //     }
 
-      const now = Date.now();
-      // const STEP_THRESHOLD = 10.0;
-      // const GRAVITY_BASE = 9.5;
-      let STEP_THRESHOLD = stepThresholdRef.current;
-      let GRAVITY_BASE = gravityBaseRef.current;
-      // Set STEP_THRESHOLD
-      if (stepThresholdRef.current <= 8.8) {
-        STEP_THRESHOLD = 9.5;
-      } else if (stepThresholdRef.current <= 10) {
-        STEP_THRESHOLD = 10;
-      }
+  //     if (gravityBaseRef.current <= 9) {
+  //       GRAVITY_BASE = 9;
+  //     } else if (gravityBaseRef.current <= 9.5) {
+  //       GRAVITY_BASE = 9.5;
+  //     }
 
-      // Set GRAVITY_BASE
-      if (gravityBaseRef.current <= 9) {
-        GRAVITY_BASE = 9;
-      } else if (gravityBaseRef.current <= 9.5) {
-        GRAVITY_BASE = 9.5;
-      }
+  //     if (m > GRAVITY_BASE && !isRising) {
+  //       isRising = true;
+  //       peakStartTime = now;
+  //     }
 
-      // ၁။ အရှိန် စတက်တာကို ဖမ်းမယ်
-      if (m > GRAVITY_BASE && !isRising) {
-        isRising = true;
-        peakStartTime = now; // အရှိန် စတက်တဲ့ အချိန်ကို မှတ်လိုက်တယ်
-      }
+  //     if (m > STEP_THRESHOLD && isRising) {
+  //       const riseDuration = now - peakStartTime;
 
-      // ၂။ အရှိန်က Threshold ကို ကျော်သွားတဲ့အခါ ကြာချိန်ကို စစ်မယ်
-      if (m > STEP_THRESHOLD && isRising) {
-        const riseDuration = now - peakStartTime; // အရှိန်တက်ဖို့ ကြာတဲ့အချိန် (Speed)
+  //       if (riseDuration > 120 && riseDuration < 450) {
+  //         if (now - lastStepTime.current > 500) {
+  //           // Cooldown
+  //           const alpha = deviceOrientation.current;
+  //           pos.current.x += Math.sin(alpha) * STEP_LENGTH;
+  //           pos.current.y -= Math.cos(alpha) * STEP_LENGTH;
+  //           updatePositionThrottled();
+  //           setIsOutOfBounds(
+  //             pos.current.x < 0 ||
+  //               pos.current.x > ROOM_SIZE_FT ||
+  //               pos.current.y < 0 ||
+  //               pos.current.y > ROOM_SIZE_FT,
+  //           );
 
-        // --- Logic ---
-        // Shake ရင် riseDuration က အရမ်းတိုတယ် (ဥပမာ < 100ms)
-        // လမ်းလျှောက်ရင် riseDuration က ပိုရှည်တယ် (ဥပမာ 150ms ~ 400ms)
+  //           // pos.current.x = Math.max(
+  //           //   -0.5,
+  //           //   Math.min(ROOM_SIZE_FT + 0.5, pos.current.x),
+  //           // );
+  //           // pos.current.y = Math.max(
+  //           //   -0.5,
+  //           //   Math.min(ROOM_SIZE_FT + 0.5, pos.current.y),
+  //           // );
 
-        if (riseDuration > 120 && riseDuration < 450) {
-          if (now - lastStepTime.current > 500) {
-            // Cooldown
-            const alpha = deviceOrientation.current;
-            pos.current.x += Math.sin(alpha) * STEP_LENGTH;
-            pos.current.y -= Math.cos(alpha) * STEP_LENGTH;
+  //           // updateNearest(pos.current, boxesRef.current);
+  //           // setPlayerPosition({ ...pos.current });
 
-            setIsOutOfBounds(
-              pos.current.x < 0 ||
-                pos.current.x > ROOM_SIZE_FT ||
-                pos.current.y < 0 ||
-                pos.current.y > ROOM_SIZE_FT,
-            );
+  //           lastStepTime.current = now;
+  //           if (navigator.vibrate) navigator.vibrate(40);
+  //         }
+  //       }
+  //       isRising = false;
+  //     }
 
-            pos.current.x = Math.max(
-              -0.5,
-              Math.min(ROOM_SIZE_FT + 0.5, pos.current.x),
-            );
-            pos.current.y = Math.max(
-              -0.5,
-              Math.min(ROOM_SIZE_FT + 0.5, pos.current.y),
-            );
+  //     if (m < GRAVITY_BASE) {
+  //       isRising = false;
+  //     }
+  //   });
 
-            updateNearest(pos.current, boxesRef.current);
-            setPlayerPosition({ ...pos.current });
+  //   window.addEventListener("deviceorientation", (e) => {
+  //     let alpha = (e as any).webkitCompassHeading || 360 - (e.alpha || 0);
+  //     deviceOrientation.current = (alpha * Math.PI) / 180;
+  //   });
 
-            lastStepTime.current = now;
-            if (navigator.vibrate) navigator.vibrate(40);
-          }
+  //   setIsStarted(true);
+  // };
+
+
+
+const initGame = () => {
+  window.addEventListener("devicemotion", (e) => {
+    const acc = e.accelerationIncludingGravity;
+    if (!acc || acc.z === null) return;
+
+    const m = Math.sqrt(acc.x! ** 2 + acc.y! ** 2 + acc.z! ** 2);
+    setMag(m);
+
+    const now = Date.now();
+    const STEP_THRESHOLD = 10.0;
+    const GRAVITY_BASE = 9.5;
+
+    // ၁။ အရှိန် စတက်တာကို ဖမ်းမယ်
+    if (m > GRAVITY_BASE && !isRising) {
+      isRising = true;
+      peakStartTime = now; // အရှိန် စတက်တဲ့ အချိန်ကို မှတ်လိုက်တယ်
+    }
+
+    // ၂။ အရှိန်က Threshold ကို ကျော်သွားတဲ့အခါ ကြာချိန်ကို စစ်မယ်
+    if (m > STEP_THRESHOLD && isRising) {
+      const riseDuration = now - peakStartTime; // အရှိန်တက်ဖို့ ကြာတဲ့အချိန် (Speed)
+
+      // --- Logic ---
+      // Shake ရင် riseDuration က အရမ်းတိုတယ် (ဥပမာ < 100ms)
+      // လမ်းလျှောက်ရင် riseDuration က ပိုရှည်တယ် (ဥပမာ 150ms ~ 400ms)
+      
+      if (riseDuration > 120 && riseDuration < 450) {
+        if (now - lastStepTime > 500) { // Cooldown
+          const alpha = deviceOrientation.current;
+          pos.current.x += Math.sin(alpha) * STEP_LENGTH;
+          pos.current.y -= Math.cos(alpha) * STEP_LENGTH;
+
+          setPlayerPosition({ ...pos.current });
+          updateNearest(pos.current, boxesRef.current);
+          
+          lastStepTime = now;
+          if (navigator.vibrate) navigator.vibrate(40);
         }
-
-        // Peak ရောက်သွားပြီမို့ ပြန် Reset လုပ်တယ်
-        isRising = false;
       }
+      
+      // Peak ရောက်သွားပြီမို့ ပြန် Reset လုပ်တယ်
+      isRising = false; 
+    }
 
-      // ၃။ အရှိန် ပြန်ကျသွားရင် Reset လုပ်ပေးရမယ်
-      if (m < GRAVITY_BASE) {
-        isRising = false;
-      }
-    });
+    // ၃။ အရှိန် ပြန်ကျသွားရင် Reset လုပ်ပေးရမယ်
+    if (m < GRAVITY_BASE) {
+      isRising = false;
+    }
+  });
 
-    window.addEventListener("deviceorientation", (e) => {
-      let alpha = (e as any).webkitCompassHeading || 360 - (e.alpha || 0);
-      deviceOrientation.current = (alpha * Math.PI) / 180;
-    });
+  window.addEventListener("deviceorientation", (e) => {
+    let alpha = (e as any).webkitCompassHeading || 360 - (e.alpha || 0);
+    deviceOrientation.current = (alpha * Math.PI) / 180;
+  });
 
-    setIsStarted(true);
-  };
-
-
+  setIsStarted(true);
+};
   const handleRegister = async () => {
     if (!usernameInput) return alert("Please Enter Your Name");
     setIsLoading(true);
@@ -348,7 +392,6 @@ export default function RadarVirtualWorldFix() {
       });
     }, 250);
   };
-  // Box အကုန်ရတဲ့အချိန်မှာ မီးရှူးမီးပန်းဖောက်ဖို့ useEffect ထဲမှာ စစ်မယ်
   useEffect(() => {
     if (inventory.length === BOX_COUNT && isStarted) {
       triggerFireworks();
@@ -381,7 +424,7 @@ export default function RadarVirtualWorldFix() {
   return (
     <main
       ref={gameRef}
-      className={`fixed inset-0 w-full h-[100vh] bg-black overflow-hidden flex flex-col items-center justify-center font-sans select-none touch-none transition-all duration-300 ${isOutOfBounds ? "ring-16px ring-inset ring-red-600/80 shadow-[0_0_60px_rgba(220,38,38,0.8)]" : ""}`}
+      className={`fixed inset-0 w-full h-[100vh] bg-black overflow-hidden flex flex-col items-center justify-center font-sans select-none touch-none transition-all duration-300 ${isOutOfBounds ? "ring-16 ring-inset ring-red-600/80 shadow-[0_0_60px_rgba(220,38,38,0.8)]" : ""}`}
     >
       {isStarted && !forceFinalScreen && (
         <button
@@ -440,7 +483,6 @@ export default function RadarVirtualWorldFix() {
               <p className="text-gray-400 text-[10px] mt-1 font-bold animate-pulse">
                 Mag - {mag.toFixed(2)}
               </p>
-              
             </div>
           </div>
         </>
