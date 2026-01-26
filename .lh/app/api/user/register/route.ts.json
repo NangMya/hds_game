@@ -1,0 +1,22 @@
+{
+    "sourceFile": "app/api/user/register/route.ts",
+    "activeCommit": 0,
+    "commits": [
+        {
+            "activePatchIndex": 1,
+            "patches": [
+                {
+                    "date": 1769398925517,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n"
+                },
+                {
+                    "date": 1769399384806,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -0,0 +1,25 @@\n+// src/app/api/user/register/route.ts\r\n+import { NextResponse } from 'next/server';\r\n+import { prisma } from '@/lib/prisma';\r\n+\r\n+export async function POST(req: Request) {\r\n+  try {\r\n+    const { username } = await req.json();\r\n+\r\n+    // ရှိပြီးသား User လား အရင်စစ်မယ် (Login Logic)\r\n+    let user = await prisma.user.findUnique({\r\n+      where: { username },\r\n+    });\r\n+\r\n+    // မရှိသေးရင် အသစ်ဆောက်မယ် (Register Logic)\r\n+    if (!user) {\r\n+      user = await prisma.user.create({\r\n+        data: { username, points: 0 },\r\n+      });\r\n+    }\r\n+\r\n+    return NextResponse.json({ success: true, user });\r\n+  } catch (error) {\r\n+    return NextResponse.json({ success: false }, { status: 500 });\r\n+  }\r\n+}\n\\ No newline at end of file\n"
+                }
+            ],
+            "date": 1769398925517,
+            "name": "Commit-0",
+            "content": "// src/app/api/user/register/route.ts\r\nimport { NextResponse } from 'next/server';\r\nimport { prisma } from '@/lib/prisma';\r\n\r\nexport async function POST(req: Request) {\r\n  try {\r\n    const { username } = await req.json();\r\n\r\n    // ရှိပြီးသား User လား အရင်စစ်မယ် (Login Logic)\r\n    let user = await prisma.user.findUnique({\r\n      where: { username },\r\n    });\r\n\r\n    // မရှိသေးရင် အသစ်ဆောက်မယ် (Register Logic)\r\n    if (!user) {\r\n      user = await prisma.user.create({\r\n        data: { username, points: 0 },\r\n      });\r\n    }\r\n\r\n    return NextResponse.json({ success: true, user });\r\n  } catch (error) {\r\n    console.log('error=>',error);\r\n    return NextResponse.json({ success: false }, { status: 500 });\r\n  }\r\n}"
+        }
+    ]
+}
