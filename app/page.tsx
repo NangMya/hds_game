@@ -47,15 +47,17 @@ export default function RadarVirtualWorldFix() {
   const [usernameInput, setUsernameInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showQuitConfirm, setShowQuitConfirm] = useState(false);
-  const [forceFinalScreen, setForceFinalScreen] = useState(false); 
+  const [forceFinalScreen, setForceFinalScreen] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
-  const [user, setUser] = useState<{ id: number; username: string } | null>(null);
+  const [user, setUser] = useState<{ id: number; username: string } | null>(
+    null,
+  );
   const gameRef = useRef<HTMLDivElement>(null);
   const pos = useRef({ x: ROOM_SIZE_FT / 2, y: ROOM_SIZE_FT / 2 });
   const deviceOrientation = useRef(0);
   const isRisingRef = useRef(false);
-const peakStartTimeRef = useRef(0);
-const samplesRef = useRef<number[]>([]);
+  const peakStartTimeRef = useRef(0);
+  const samplesRef = useRef<number[]>([]);
 
   const [calibPopup, setCalibPopup] = useState<string | null>(null);
   const [isCalibrating, setIsCalibrating] = useState(false);
@@ -136,7 +138,9 @@ const samplesRef = useRef<number[]>([]);
         target = b;
       }
     });
-const angle = Math.atan2(target.y - currentPos.y, target.x - currentPos.x) * (180 / Math.PI);
+    const angle =
+      Math.atan2(target.y - currentPos.y, target.x - currentPos.x) *
+      (180 / Math.PI);
     setNearestInfo({ distance: minD, angle, id: target.id });
   };
 
@@ -185,36 +189,50 @@ const angle = Math.atan2(target.y - currentPos.y, target.x - currentPos.x) * (18
   };
 
   const startJourney = async () => {
-  const DM = DeviceMotionEvent as any;
-  if (typeof DM.requestPermission === "function") {
-    const res = await DM.requestPermission();
-    if (res === "granted") startCountdown(); // Countdown အရင်သွားမယ်
-  } else {
-    startCountdown();
-  }
-};
+    try {
+      // iOS/Safari အတွက် Permission စစ်ဆေးခြင်း
+      if (typeof (DeviceMotionEvent as any).requestPermission === "function") {
+        const permission = await (DeviceMotionEvent as any).requestPermission();
 
-const startCountdown = () => {
-  const sequence = ["READY?", "3", "2", "1", "GO! 🏃"];
-  let index = 0;
-
-  setCalibPopup(sequence[index]);
-
-  const timer = setInterval(() => {
-    index++;
-    if (index < sequence.length) {
-      setCalibPopup(sequence[index]);      
-      if (sequence[index] === "GO! 🏃") {
-        initGame(); 
+        if (permission === "granted") {
+          startCountdown();
+        } else {
+          alert("Permission denied. Game needs motion sensors to work.");
+        }
+      } else {
+        // Android သို့မဟုတ် Permission မလိုသော Browser များအတွက်
+        startCountdown();
       }
-    } else {
-      clearInterval(timer);
-      setTimeout(() => setCalibPopup(null), 2000); // GO! ကို ၂ စက္ကန့်ပြပြီး ပိတ်မယ်
+    } catch (error) {
+      alert("Device Motion Error:");
+      console.log("Device Motion Error:", error);
+      // Error တက်ခဲ့ရင်တောင် Countdown ကို စမ်းပြီး စတင်ခိုင်းကြည့်မယ်
+      startCountdown();
     }
-  }, 1000);
-};
+  };
 
+  const startCountdown = () => {
+    setIsStarted(true); // <--- ဒါကို အရင်ဆုံး true ပေးမှ UI က Countdown screen ကို ပြောင်းမှာပါ
 
+    const sequence = ["READY?", "3", "2", "1", "GO! 🏃"];
+    let index = 0;
+
+    setCalibPopup(sequence[0]);
+
+    const timer = setInterval(() => {
+      index++;
+      if (index < sequence.length) {
+        setCalibPopup(sequence[index]);
+        if (sequence[index] === "GO! 🏃") {
+          // UI Render ဖြစ်ဖို့ ခဏစောင့်ပြီးမှ sensor ဖွင့်မယ်
+          setTimeout(() => initGame(), 50);
+        }
+      } else {
+        clearInterval(timer);
+        setTimeout(() => setCalibPopup(null), 1000);
+      }
+    }, 1000);
+  };
 
   const movePlayer = () => {
     const alpha = deviceOrientation.current;
@@ -237,57 +255,61 @@ const startCountdown = () => {
   };
 
   const initGame = () => {
-  setIsCalibrating(true); // Calibration light ပြဖို့
-  samples = [];
-  setIsStarted(true);
+    setIsCalibrating(true); // Calibration light ပြဖို့
+    samples = [];
+    setIsStarted(true);
 
- // Use Refs for values that change rapidly to avoid re-render lag
+    // Use Refs for values that change rapidly to avoid re-render lag
 
+    const motionHandler = (e: DeviceMotionEvent) => {
+      const acc = e.accelerationIncludingGravity;
+      if (!acc || acc.z === null) return;
 
-const motionHandler = (e: DeviceMotionEvent) => {
-  const acc = e.accelerationIncludingGravity;
-  if (!acc || acc.z === null) return;
-
-  const m = Math.sqrt((acc.x || 0) ** 2 + (acc.y || 0) ** 2 + (acc.z || 0) ** 2);
-  setMag(m);
-  // 1. Dynamic Calibration Logic
-  if (samplesRef.current.length < 20) {
-    samplesRef.current.push(m);
-    return;
-  }
-
-  const now = Date.now();
-  const STEP_THRESHOLD = 10.5; 
-  const GRAVITY_BASE = 9.5;
-
-  // 2. Peak Detection Logic
-  if (m > GRAVITY_BASE && !isRisingRef.current) {
-    isRisingRef.current = true;
-    peakStartTimeRef.current = now;
-  }
-
-  if (m > STEP_THRESHOLD && isRisingRef.current) {
-    const riseDuration = now - peakStartTimeRef.current;
-    
-    // Validate step timing (human gait is usually between 100ms-400ms for a peak)
-    if (riseDuration > 100 && riseDuration < 400) {
-      if (now - lastStepTimeGlobal > 550) { 
-        movePlayer(); // This function updates playerPosition
-        lastStepTimeGlobal = now;
+      const m = Math.sqrt(
+        (acc.x || 0) ** 2 + (acc.y || 0) ** 2 + (acc.z || 0) ** 2,
+      );
+      setMag(m);
+      // 1. Dynamic Calibration Logic
+      if (samplesRef.current.length < 20) {
+        samplesRef.current.push(m);
+        return;
       }
-    }
-    isRisingRef.current = false;
-  }
 
-  if (m < GRAVITY_BASE) isRisingRef.current = false;
-};
+      const now = Date.now();
+      // const STEP_THRESHOLD = 10.5;
+      // const GRAVITY_BASE = 9.5;
 
-  window.addEventListener("devicemotion", motionHandler);
-  window.addEventListener("deviceorientation", (e) => {
-    let alpha = (e as any).webkitCompassHeading || 360 - (e.alpha || 0);
-    deviceOrientation.current = (alpha * Math.PI) / 180;
-  });
-};
+      const STEP_THRESHOLD = 10.8;
+      const GRAVITY_BASE = 9.8;
+
+      // 2. Peak Detection Logic
+      if (m > GRAVITY_BASE && !isRisingRef.current) {
+        isRisingRef.current = true;
+        peakStartTimeRef.current = now;
+      }
+
+      if (m > STEP_THRESHOLD && isRisingRef.current) {
+        const riseDuration = now - peakStartTimeRef.current;
+
+        // Validate step timing (human gait is usually between 100ms-400ms for a peak)
+        if (riseDuration > 100 && riseDuration < 400) {
+          if (now - lastStepTimeGlobal > 550) {
+            movePlayer(); // This function updates playerPosition
+            lastStepTimeGlobal = now;
+          }
+        }
+        isRisingRef.current = false;
+      }
+
+      if (m < GRAVITY_BASE) isRisingRef.current = false;
+    };
+
+    window.addEventListener("devicemotion", motionHandler);
+    window.addEventListener("deviceorientation", (e) => {
+      let alpha = (e as any).webkitCompassHeading || 360 - (e.alpha || 0);
+      deviceOrientation.current = (alpha * Math.PI) / 180;
+    });
+  };
   const handleRegister = async () => {
     if (!usernameInput) return alert("Please Enter Your Name");
 
@@ -416,19 +438,24 @@ const motionHandler = (e: DeviceMotionEvent) => {
         </button>
       )}
 
-{calibPopup && (
-  <div className="fixed inset-0 z-[10000] bg-black/90 backdrop-blur-2xl flex items-center justify-center">
-    <div className="text-center">
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-yellow-500/20 blur-[100px] rounded-full animate-pulse" />
-      <h1 className="relative text-9xl font-black text-white italic tracking-tighter drop-shadow-2xl animate-bounce">
-        {calibPopup}
-      </h1>
-      <p className="relative text-zinc-500 text-xs font-bold uppercase tracking-[0.5em] mt-10">
-        {calibPopup === "GO! 🏃" ? "Walk Forward" : "Initializing Radar"}
-      </p>
-    </div>
-  </div>
-)}
+      {calibPopup && (
+        <div className="fixed inset-0 z-[10000] bg-black/90 backdrop-blur-2xl flex items-center justify-center">
+          <div className="text-center">
+            {/* key={calibPopup} ထည့်ခြင်းဖြင့် စာသားပြောင်းတိုင်း animation အသစ် ပြန်စပါလိမ့်မယ် */}
+            <h1
+              key={calibPopup}
+              className={`relative font-black text-white italic tracking-tighter drop-shadow-2xl animate-bounce transition-all ${
+                calibPopup === "READY?" ? "text-7xl" : "text-9xl"
+              }`}
+            >
+              {calibPopup}
+            </h1>
+            <p className="relative text-zinc-500 text-xs font-bold uppercase tracking-[0.5em] mt-10">
+              {calibPopup === "GO! 🏃" ? "Walk Forward" : "Initializing Radar"}
+            </p>
+          </div>
+        </div>
+      )}
       {isStarted && (
         <>
           <button
@@ -464,7 +491,6 @@ const motionHandler = (e: DeviceMotionEvent) => {
               <p className="text-gray-400 text-[10px] mt-1 font-bold animate-pulse">
                 Mag - {mag.toFixed(2)}
               </p>
-
             </div>
           </div>
         </>
@@ -537,9 +563,34 @@ const motionHandler = (e: DeviceMotionEvent) => {
           )}
         </div>
 
+        {/* Fixed Player Indicator (Stay in Center) */}
+        <div className="relative z-10 pointer-events-none opacity-90">
+          {/* Player ရဲ့ ကိုယ်ထည် (Heading အရ လှည့်မည်) */}
+          <div
+            className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-2xl border-2 border-white/20 transition-transform duration-100"
+            style={{
+              transform: `rotate(${deviceOrientation.current * (180 / Math.PI)}deg)`,
+            }}
+          >
+            {/* ရှေ့တည့်တည့်ကို ပြတဲ့ အပြာရောင်မျဉ်း (Player Direction) */}
+            {/* Arrow Shape Indicator */}
+            <div
+              className="w-6 h-8 bg-blue-600 mb-8"
+              style={{
+                clipPath: "polygon(50% 0%, 0% 100%, 50% 80%, 100% 100%)",
+              }}
+            />
+          </div>
+
+          {/* Box ဘက်ကို ညွှန်ပြတဲ့ အဝါရောင် Arc (Target Tracker အဖြစ် ဆက်ထားချင်ရင်) */}
+          <div
+            className="absolute -inset-8 border-t-4 border-yellow-400 rounded-full transition-transform"
+            style={{ transform: `rotate(${nearestInfo.angle + 90}deg)` }}
+          />
+        </div>
         {/*  Fixed Player Indicator (Stay in Center) */}
 
-        <div className="relative z-10 pointer-events-none opacity-90">
+        {/* <div className="relative z-10 pointer-events-none opacity-90">
           <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-2xl border-2 border-white/20">
             <div className="w-2.5 h-8 bg-blue-600 rounded-full mb-8" />
           </div>
@@ -548,7 +599,7 @@ const motionHandler = (e: DeviceMotionEvent) => {
             className="absolute -inset-8 border-t-4 border-yellow-400 rounded-full transition-transform"
             style={{ transform: `rotate(${nearestInfo.angle + 90}deg)` }}
           />
-        </div>
+        </div> */}
       </div>
 
       {/* Popups (Inventory & Victory) */}
