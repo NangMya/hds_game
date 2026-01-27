@@ -276,11 +276,11 @@ export default function RadarVirtualWorldFix() {
       }
 
       const now = Date.now();
-      // const STEP_THRESHOLD = 10.5;
-      // const GRAVITY_BASE = 9.5;
+      const STEP_THRESHOLD = 10.5;
+      const GRAVITY_BASE = 9.5;
 
-      const STEP_THRESHOLD = 10.8;
-      const GRAVITY_BASE = 9.8;
+      // const STEP_THRESHOLD = 10.8;
+      // const GRAVITY_BASE = 9.8;
 
       // 2. Peak Detection Logic
       if (m > GRAVITY_BASE && !isRisingRef.current) {
