@@ -3,7 +3,7 @@
     "activeCommit": 0,
     "commits": [
         {
-            "activePatchIndex": 7,
+            "activePatchIndex": 9,
             "patches": [
                 {
                     "date": 1768811741023,
@@ -36,6 +36,14 @@
                 {
                     "date": 1768815511696,
                     "content": "Index: \n===================================================================\n--- \n+++ \n@@ -7,11 +7,12 @@\n   url      = env(\"DATABASE_URL\")\n }\n \n model User {\n-  id       Int      @id @default(autoincrement())\n-  username String   @unique\n-  points   Int      @default(0)\n+  id       Int    @id @default(autoincrement())\n+  username String @unique\n+  points   Int    @default(0)\n+  items    Item[]\n }\n \n model Box {\n   id       Int     @id @default(autoincrement())\n@@ -21,10 +22,10 @@\n }\n \n model Item {\n   id        Int      @id @default(autoincrement())\n-  name      String   // e.g., \"ရွှေသေတ္တာ\", \"ဆေးထုပ်\"\n-  type      String   // e.g., \"Gift\", \"Potion\"\n+  name      String // e.g., \"ရွှေသေတ္တာ\", \"ဆေးထုပ်\"\n+  type      String // e.g., \"Gift\", \"Potion\"\n   userId    Int\n   user      User     @relation(fields: [userId], references: [id])\n\\ No newline at end of file\n   createdAt DateTime @default(now())\n-}\n+}\n"
+                },
+                {
+                    "date": 1769507854106,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -13,14 +13,14 @@\n   points   Int    @default(0)\n   items    Item[]\n }\n \n-model Box {\n-  id       Int     @id @default(autoincrement())\n-  lat      Float\n-  lng      Float\n-  isOpened Boolean @default(false)\n-}\n+// model Box {\n+//   id       Int     @id @default(autoincrement())\n+//   lat      Float\n+//   lng      Float\n+//   isOpened Boolean @default(false)\n+// }\n \n model Item {\n   id        Int      @id @default(autoincrement())\n   name      String // e.g., \"ရွှေသေတ္တာ\", \"ဆေးထုပ်\"\n"
+                },
+                {
+                    "date": 1769507863611,
+                    "content": "Index: \n===================================================================\n--- \n+++ \n@@ -28,25 +28,4 @@\n   userId    Int\n   user      User     @relation(fields: [userId], references: [id])\n   createdAt DateTime @default(now())\n }\n-generator client {\n-  provider = \"prisma-client-js\"\n-}\n-\n-datasource db {\n-  provider = \"mysql\"\n-  url      = env(\"DATABASE_URL\")\n-}\n-\n-model User {\n-  id       Int      @id @default(autoincrement())\n-  username String   @unique\n-  points   Int      @default(0)\n-}\n-\n-model Box {\n-  id       Int     @id @default(autoincrement())\n-  lat      Float\n-  lng      Float\n-  isOpened Boolean @default(false)\n-}\n\\ No newline at end of file\n"
                 }
             ],
             "date": 1768811741023,

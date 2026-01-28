@@ -190,24 +190,21 @@ export default function RadarVirtualWorldFix() {
 
   const startJourney = async () => {
     try {
-      // iOS/Safari အတွက် Permission စစ်ဆေးခြင်း
       if (typeof (DeviceMotionEvent as any).requestPermission === "function") {
         const permission = await (DeviceMotionEvent as any).requestPermission();
-
         if (permission === "granted") {
-          startCountdown();
+          return true;
         } else {
           alert("Permission denied. Game needs motion sensors to work.");
+          return false;
         }
-      } else {
-        // Android သို့မဟုတ် Permission မလိုသော Browser များအတွက်
-        startCountdown();
       }
+      return true; // Android/Desktop
     } catch (error) {
-      alert("Device Motion Error:");
-      console.log("Device Motion Error:", error);
-      // Error တက်ခဲ့ရင်တောင် Countdown ကို စမ်းပြီး စတင်ခိုင်းကြည့်မယ်
-      startCountdown();
+      console.error("Device Motion Error:", error);
+      // This usually happens if not called from a direct click
+      alert("Please click the button again to enable sensors.");
+      return false;
     }
   };
 
@@ -313,26 +310,26 @@ export default function RadarVirtualWorldFix() {
   const handleRegister = async () => {
     if (!usernameInput) return alert("Please Enter Your Name");
 
-    setIsLoading(true);
+    // 1. Get Permission FIRST while we have the user's "Gesture"
+    const granted = await startJourney();
+    if (!granted) return; // Stop if they denied it
 
+    setIsLoading(true);
     try {
       const res = await fetch("/api/user/register", {
         method: "POST",
-
         body: JSON.stringify({ username: usernameInput }),
       });
 
       const data = await res.json();
-
       if (data.success) {
         localStorage.setItem("game_user", JSON.stringify(data.user));
-
         setUser(data.user);
-
-        startJourney();
+        // Permission is already granted, startCountdown will now work
+        startCountdown();
       }
     } catch (err) {
-      alert("Error ဖြစ်သွားပါပြီ");
+      alert("Error registration failed");
     } finally {
       setIsLoading(false);
     }
@@ -413,7 +410,14 @@ export default function RadarVirtualWorldFix() {
           />
 
           <button
-            onClick={user?.username ? startJourney : handleRegister}
+            onClick={async () => {
+              if (user?.username) {
+                const granted = await startJourney();
+                if (granted) startCountdown();
+              } else {
+                handleRegister();
+              }
+            }}
             disabled={isLoading}
             className="w-full bg-yellow-500 hover:bg-yellow-600 p-4 rounded-xl font-bold text-black transition-all"
           >

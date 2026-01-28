@@ -14,12 +14,12 @@ model User {
   items    Item[]
 }
 
-model Box {
-  id       Int     @id @default(autoincrement())
-  lat      Float
-  lng      Float
-  isOpened Boolean @default(false)
-}
+// model Box {
+//   id       Int     @id @default(autoincrement())
+//   lat      Float
+//   lng      Float
+//   isOpened Boolean @default(false)
+// }
 
 model Item {
   id        Int      @id @default(autoincrement())
