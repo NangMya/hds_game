@@ -83,13 +83,15 @@ export default function RadarVirtualWorldFix() {
 
     const center = ROOM_SIZE_FT / 2;
 
-    const maxRadius = Math.max(0, ROOM_SIZE_FT / 2 - 5);
+    const minRadius = 3;
+    // const minRadius = 0;
+    const maxRadius = Math.max(minRadius, ROOM_SIZE_FT / 2 - 5);
 
     for (let i = 0; i < BOX_COUNT; i++) {
       const angle = Math.random() * Math.PI * 2;
 
-      const radius = Math.sqrt(Math.random()) * maxRadius;
-
+      // const radius = Math.sqrt(Math.random()) * maxRadius;
+      const radius =  minRadius + Math.sqrt(Math.random()) * (maxRadius - minRadius);
       newBoxes.push({
         id: i,
 
